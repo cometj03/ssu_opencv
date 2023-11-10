@@ -177,8 +177,7 @@ def calculate_size(src):
 #     cv.waitKey()
 
 boards = [
-    # imread("checker1_full.png"),
-    # imread("checker3_full_with_pieces.png"),
+    imread("checker3_full_with_pieces.png"),
     imread("board1.jpg"),
     imread("board2.jpg"),
     imread("board3.jpg"),
