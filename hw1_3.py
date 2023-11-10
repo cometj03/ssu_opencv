@@ -5,8 +5,6 @@ import sys
 
 import numpy as np
 
-from util import draw_lines_polar, boards
-
 def _polar_to_cartesian(lines):
     """
     극좌표 형식(x*cos_t + y*sin_t = rho)을
@@ -37,13 +35,29 @@ def intersection_point(line1, line2, threshold=0.2):
     y0 = a1 * x0 + b1
     return x0, y0
 
-def main():
-    for b in boards[:]:
-        test(b)
+def draw_lines_polar(src, lines, color):
+    if lines is None:
+        print("lines is none!")
+        exit(0)
+    if src.ndim == 2:  # grayscale 이면 BGR로 변환
+        dst = cv.cvtColor(src, cv.COLOR_GRAY2BGR)
+    else:
+        dst = src.copy()
 
-def test(src):
-    # filename = "checker5.jpg" if len(sys.argv) < 2 else sys.argv[1]
-    # src = cv.imread(filename, cv.IMREAD_GRAYSCALE)
+    for i in range(lines.shape[0]):
+        rho, theta = lines[i][0]
+        cos_t = math.cos(theta)
+        sin_t = math.sin(theta)
+        x0, y0 = rho * cos_t, rho * sin_t
+        alpha = 1000
+        pt1 = (int(x0 - alpha * sin_t), int(y0 + alpha * cos_t))
+        pt2 = (int(x0 + alpha * sin_t), int(y0 - alpha * cos_t))
+        cv.line(dst, pt1, pt2, color, 1, cv.LINE_AA)
+    return dst
+
+def main():
+    filename = "board3.jpg" if len(sys.argv) < 2 else sys.argv[1]
+    src = cv.imread(filename, cv.IMREAD_GRAYSCALE)
 
     if src is None:
         print("Image load failed!")
@@ -126,7 +140,7 @@ def test(src):
     # edge = draw_lines_polar(edge, v_lines, (255, 255, 0))
     edge = draw_lines_polar(edge, h_edges, (0, 0, 255))
     edge = draw_lines_polar(edge, v_edges, (0, 255, 0))
-    edge = draw_lines_polar(edge, np.array([[[0, horizontal_line]]]), (0, 255, 0))
+    edge = draw_lines_polar(edge, np.array([[[0, horizontal_line]]]), (255, 0, 0))
 
     # 모서리끼리 교점 계산
     h_edges_ab = _polar_to_cartesian(h_edges)
@@ -139,10 +153,20 @@ def test(src):
     for p in points:
         cv.circle(edge, p, 5, (0, 0, 255), -1)
 
-
-
-
     cv.imshow("edge", edge)
+
+    # 꼭짓점 시계방향으로 정렬
+    # 화면 기준으로는 clockwise=False여야 시계방향
+    sorted_points = cv.convexHull(np.array(points), clockwise=False).astype(np.float32)
+
+    w = 400
+    dst_pts = np.array([[[0, 0]],
+                        [[w - 1, 0]],
+                        [[w - 1, w - 1]],
+                        [[0, w - 1]]]).astype(np.float32)
+    pers_mat = cv.getPerspectiveTransform(sorted_points, dst_pts)
+    transformed_src = cv.warpPerspective(src, pers_mat, (w, w))
+    cv.imshow("transformed", transformed_src)
 
     cv.waitKey()
     cv.destroyAllWindows()
