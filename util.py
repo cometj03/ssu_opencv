@@ -178,10 +178,10 @@ def calculate_size(src):
 
 boards = [
     # imread("checker1_full.png"),
-    imread("checker2.jpg"),
     # imread("checker3_full_with_pieces.png"),
     imread("board1.jpg"),
-    imread("checker5.jpg"),
+    imread("board2.jpg"),
+    imread("board3.jpg"),
     imread("checker6.jpg"),
     imread("checker7_with_pieces.jpg"),
     imread("checker8_with_pieces.jpg"),

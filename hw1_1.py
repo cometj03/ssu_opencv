@@ -1,20 +1,13 @@
 import cv2 as cv
 import sys
 
-from util import boards
-
 """
 체커보드 n by n 구하기
 """
 
 def main():
-    for b in boards:
-        test(b)
-
-def test(src):
-    # filename = "board1.jpg" if len(sys.argv) < 2 else sys.argv[1]
-
-    # src = cv.imread(filename, cv.IMREAD_GRAYSCALE)
+    filename = "board1.jpg" if len(sys.argv) < 2 else sys.argv[1]
+    src = cv.imread(filename, cv.IMREAD_GRAYSCALE)
 
     if src is None:
         print("Image load failed!")

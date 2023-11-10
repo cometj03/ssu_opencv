@@ -7,7 +7,7 @@ click_cnt = 0
 src_points = np.zeros((4, 2), dtype=np.float32)
 
 def main():
-    filename = "checker5.jpg" if len(sys.argv) < 2 else sys.argv[1]
+    filename = "board2.jpg" if len(sys.argv) < 2 else sys.argv[1]
     src = cv.imread(filename, cv.IMREAD_COLOR)
 
     width = 700
