@@ -103,39 +103,43 @@ def test(src):
     # 세로선 구하기
     max_v_line = v_lines[0][0]
     min_v_line = v_lines[0][0]
-    print('---------')
+
     for l in v_lines:
-        rho, _ = l[0]
-        print(rho)
-        max_rho, _ = max_v_line
-        min_rho, _ = min_v_line
+        rho, theta = l[0]
+
+        max_rho, mx_theta = max_v_line
+        min_rho, mn_theta = min_v_line
+
+        # 각도가 90도 넘어가면 rho의 부호가 바뀔 수 있음
+        rho *= -1 if theta > math.pi / 2 else 1
+        max_rho *= -1 if mx_theta > math.pi / 2 else 1
+        min_rho *= -1 if mn_theta > math.pi / 2 else 1
         if max_rho < rho:
             max_v_line = l[0]
         if rho < min_rho:
             min_v_line = l[0]
-    print(max_v_line)
-    print(min_v_line)
-    # todo: 각도에 따라 부호가 달라져서 잘못 검출되는거 수정하기
+
     h_edges, v_edges = np.array([[min_h_line], [max_h_line]]), np.array([[min_v_line], [max_v_line]])
 
     edge = src.copy()
-    edge = draw_lines_polar(edge, h_lines, (0, 0, 255))
-    edge = draw_lines_polar(edge, v_lines, (255, 255, 0))
+    # edge = draw_lines_polar(edge, h_lines, (0, 0, 255))
+    # edge = draw_lines_polar(edge, v_lines, (255, 255, 0))
     edge = draw_lines_polar(edge, h_edges, (0, 0, 255))
     edge = draw_lines_polar(edge, v_edges, (0, 255, 0))
     edge = draw_lines_polar(edge, np.array([[[0, horizontal_line]]]), (0, 255, 0))
 
+    # 모서리끼리 교점 계산
     h_edges_ab = _polar_to_cartesian(h_edges)
     v_edges_ab = _polar_to_cartesian(v_edges)
-
     points = []
     for h in h_edges_ab:
         for v in v_edges_ab:
             x, y = intersection_point(h, v)
             points.append((int(x), int(y)))
-
     for p in points:
         cv.circle(edge, p, 5, (0, 0, 255), -1)
+
+
 
 
     cv.imshow("edge", edge)
