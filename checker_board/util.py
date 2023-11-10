@@ -14,6 +14,11 @@ def imread(filename, width=700):
     # src = _resize(src, width)
     return src
 
+def imread2(filename, width=700):
+    src = cv.imread(filename, cv.IMREAD_COLOR)
+    # src = _resize(src, width)
+    return src
+
 def draw_lines_polar(src, lines, color):
     if lines is None:
         print("lines is none!")
@@ -177,13 +182,19 @@ def calculate_size(src):
 #     cv.waitKey()
 
 boards = [
-    imread("checker3_full_with_pieces.png"),
+    imread("checker_with_pieces.png"),
     imread("board1.jpg"),
     imread("board2.jpg"),
     imread("board3.jpg"),
     imread("checker6.jpg"),
     imread("checker7_with_pieces.jpg"),
-    imread("checker8_with_pieces.jpg"),
+    imread("board4.jpg"),
+]
+
+boards2 = [
+    # imread2("checker_with_pieces.png"),
+    imread2("checker7_with_pieces.jpg"),
+    imread2("board4.jpg"),
 ]
 def main():
 
