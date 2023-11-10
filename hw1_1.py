@@ -20,7 +20,7 @@ def main():
     # _, thresh = cv.threshold(blur, 0, 255, cv.THRESH_BINARY_INV | cv.THRESH_OTSU)
     thresh = cv.adaptiveThreshold(blur, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 71, 5)
 
-    cv.imshow("thresh", thresh)
+    # cv.imshow("thresh", thresh)
 
     horizontal_kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 3))
     dilate = cv.morphologyEx(thresh, cv.MORPH_DILATE, horizontal_kernel, iterations=1)
