@@ -11,7 +11,7 @@ def _resize(src, width=500):
 
 def imread(filename, width=700):
     src = cv.imread(filename, cv.IMREAD_GRAYSCALE)
-    src = _resize(src, width)
+    # src = _resize(src, width)
     return src
 
 def draw_lines_polar(src, lines, color):

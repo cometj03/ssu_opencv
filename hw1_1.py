@@ -1,14 +1,20 @@
 import cv2 as cv
 import sys
 
+from util import boards
+
 """
 체커보드 n by n 구하기
 """
 
 def main():
-    filename = "board1.jpg" if len(sys.argv) < 2 else sys.argv[1]
+    for b in boards:
+        test(b)
 
-    src = cv.imread(filename, cv.IMREAD_GRAYSCALE)
+def test(src):
+    # filename = "board1.jpg" if len(sys.argv) < 2 else sys.argv[1]
+
+    # src = cv.imread(filename, cv.IMREAD_GRAYSCALE)
 
     if src is None:
         print("Image load failed!")
@@ -44,7 +50,7 @@ def main():
         _child_idx = hierarchy[0, top_level_idx, 2]
         _max = 0
         while _child_idx >= 0:
-            if cv.contourArea(cnts[_child_idx]) > 100:
+            if cv.contourArea(cnts[_child_idx]) > 400:
                 _max += 1
                 cv.drawContours(contoured, [cnts[_child_idx]], 0, (0, 255, 0), 2)
             _child_idx = hierarchy[0, _child_idx, 0]
