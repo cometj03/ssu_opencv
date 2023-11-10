@@ -10,15 +10,15 @@ def main():
     filename = "board2.jpg" if len(sys.argv) < 2 else sys.argv[1]
     src = cv.imread(filename, cv.IMREAD_COLOR)
 
+    if src is None:
+        print("Image load failed!")
+        exit()
+
     width = 700
     ratio = width / src.shape[1]
     inter_flag = cv.INTER_CUBIC if (ratio > 1) else cv.INTER_AREA
     src = cv.resize(src, (0, 0), fx=ratio, fy=ratio, interpolation=inter_flag)
     src_circle = src.copy()
-
-    if src is None:
-        print("Image load failed!")
-        exit()
 
     def on_mouse(event, x, y, flags, param):
         global click_cnt, src_points

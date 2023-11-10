@@ -13,7 +13,6 @@ def main():
         print("Image load failed!")
         exit()
 
-    # todo: resize 말고 perspective 트랜스폼 해서 정확도 높이기
     width = 700
     ratio = width / src.shape[1]
     inter_flag = cv.INTER_CUBIC if (ratio > 1) else cv.INTER_AREA
