@@ -1,5 +1,24 @@
+import pickle
+from typing import Dict, Tuple, Sequence
+
 import cv2 as cv
-import sys
+import numpy as np
+from cv2.typing import Point2f
+
+"""
+- key: 훈련 이미지 경로
+- value: tuple(keypoint들의 위치 리스트, 기술자 리스트)
+"""
+FeatureDict = Dict[str, Tuple[Sequence[Point2f], Sequence[np.ndarray]]]
+
+
+def waitKey() -> bool:
+    c = cv.waitKey()
+    cv.destroyAllWindows()
+    if c == 27:
+        return True
+    return False
+
 
 def _resize(src):
     width, height = 1500, 1000
@@ -11,10 +30,12 @@ def _resize(src):
         src = cv.resize(src, (0, 0), fx=ratio, fy=ratio, interpolation=cv.INTER_AREA)
     return src
 
+
 def _getMatchesUsingBF_KNN(desc1, desc2):
     matcher = cv.BFMatcher_create(cv.NORM_L2)
     matches = matcher.knnMatch(desc1, desc2, k=2)
     return matches
+
 
 def _getMatchesUsingFlann_KNN(desc1, desc2):
     FLANN_INDEX_KDTREE = 1
@@ -25,64 +46,86 @@ def _getMatchesUsingFlann_KNN(desc1, desc2):
     matches = flann.knnMatch(desc1, desc2, k=2)
     return matches
 
+
+FILENAME = "esb_feature_vector.pkl"
+
+test_paths = [
+    "img/esb1.jpg",
+    "img/esb2.jpg",
+    "img/esb3.jpg",
+    "img/esb4.jpg",
+    "img/esb5.jpg",
+    "img/esb6.jpg",
+    "img/esb7.jpg",
+]
+
+
 def main():
-    # test("img/not-esb-chrysler1.jpg")
-    # cv.waitKey()
-    # cv.destroyAllWindows()
+    # TODO 파일 없을 때 오류처리
 
-    for i in range(1, 8):
-        test(f"img/esb{i}.jpg")
+    features: FeatureDict
+    with open(FILENAME, "rb") as f:
+        features = pickle.load(f)
 
-        c = cv.waitKey()
-        cv.destroyAllWindows()
-        if c == 27:
+    i = 1
+    for p in test_paths:
+        print(i)
+        i += 1
+        test(p, features)
+        if waitKey():
             break
 
-def test(filename):
-    # filename = "img/esb2.jpg" if len(sys.argv) < 2 else sys.argv[1]
-    # src1 = cv.imread("esb1.png", cv.IMREAD_GRAYSCALE)  # queryImg
-    src1 = cv.imread("train_img/esb3.png", cv.IMREAD_GRAYSCALE)  # queryImg
-    src2 = cv.imread(filename, cv.IMREAD_GRAYSCALE)                     # trainImg
 
-    if src1 is None or src2 is None:
-        print('Image load failed!')
+def test(path: str, features: FeatureDict):
+    # filename = "img/esb2.jpg" if len(sys.argv) < 2 else sys.argv[1]
+
+    dst = cv.imread(path, cv.IMREAD_GRAYSCALE)
+
+    if dst is None:
+        print(f'Image load failed! path={path}')
         return
 
-    src2 = _resize(src2)
+    dst = _resize(dst)
 
-    # detector = cv.ORB_create()
-    detector = cv.KAZE_create()
-    # detector = cv.SIFT_create()
-    keypoints1, desc1 = detector.detectAndCompute(src1, None)
-    keypoints2, desc2 = detector.detectAndCompute(src2, None)
-    print('desc1.shape:', desc1.shape)
-    print('desc2.shape:', desc2.shape)
-    print(desc1)
+    # detector: cv.Feature2D = cv.SIFT_create()
+    # detector: cv.Feature2D = cv.KAZE_create()
+    detector: cv.Feature2D = cv.ORB_create()
+    matcher: cv.DescriptorMatcher = cv.BFMatcher_create(cv.NORM_L2)
 
+    for k in features.keys():
+        train_img = cv.imread(k, cv.IMREAD_GRAYSCALE)
+        train_points, train_desc = features[k]
+        train_desc = np.array(train_desc)
+        train_points = np.array(train_points).reshape((-1, 1, 2)).astype(np.float32)
+        train_kp = [cv.KeyPoint(p[0, 0], p[0, 1], 0, 0, 0, 0, 0) for p in train_points]
 
-    kp_query = cv.drawKeypoints(src1, keypoints1, None, (-1, -1, -1),
-                            cv.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-    kp_train = cv.drawKeypoints(src2, keypoints2, None, (-1, -1, -1),
-                            cv.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        dst_kp, dst_desc = detector.detectAndCompute(dst, None)
 
-    cv.imshow("keypoints_q", kp_query)
-    cv.imshow("keypoints_t", kp_train)
+        matches: Sequence[cv.DMatch] = matcher.match(train_desc, dst_desc)
+        # cnt = len(matches)
+        # sorted_matches = sorted(matches, key=lambda x: x.distance)
+        # good_matches = sorted_matches[:cnt // 2]
 
-    matches = _getMatchesUsingBF_KNN(desc1, desc2)
-    # matches = _getMatchesUsingFlann_KNN(desc1, desc2)
+        # matches: Sequence[Sequence[cv.DMatch]] = matcher.knnMatch(feat_desc, desc, k=2)
+        # good_matches: list[cv.DMatch] = []
+        # for m, n in matches:
+        #     if m.distance < 0.9 * n.distance:
+        #         good_matches.append(m)
 
-    good = []
-    for m, n in matches:
-        if m.distance < 0.8 * n.distance:
-            good.append(m)
+        dst_points = np.array([dst_kp[m.trainIdx].pt for m in matches]).reshape((-1, 1, 2)).astype(np.float32)
+        H, mask = cv.findHomography(train_points, dst_points, cv.RANSAC)
 
+        matchesMask = mask.ravel().tolist()
 
+        res = cv.drawMatches(train_img, train_kp, dst, dst_kp, matches, None,
+                             matchesMask=matchesMask,
+                             flags=cv.DRAW_MATCHES_FLAGS_NOT_DRAW_SINGLE_POINTS)
+        cv.imshow("asdf", res)
+        # dst = cv.drawKeypoints(src, good_keypoints, None, (-1, -1, -1), flags=cv.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        # cv.imshow("dst", dst)
+        if waitKey():
+            break
 
-    dst = cv.drawMatches(src1, keypoints1, src2, keypoints2, good, None)
-    cv.imshow("match", dst)
-
-    # cv.waitKey()
-    # cv.destroyAllWindows()
 
 if __name__ == '__main__':
     main()
