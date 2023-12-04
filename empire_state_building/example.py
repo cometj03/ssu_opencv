@@ -29,7 +29,7 @@ def keypoint_matching():
 
 def good_matching():
     src1 = cv2.imread('img/esb1.jpg', cv2.IMREAD_GRAYSCALE)
-    src2 = cv2.imread('train_img/esb2.jpg', cv2.IMREAD_GRAYSCALE)
+    src2 = cv2.imread('train_img/ex/esb2.jpg', cv2.IMREAD_GRAYSCALE)
 
     if src1 is None or src2 is None:
         print('Image load failed!')

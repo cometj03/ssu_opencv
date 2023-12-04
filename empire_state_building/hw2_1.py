@@ -5,6 +5,8 @@ import cv2 as cv
 import numpy as np
 from cv2.typing import Point2f
 
+from extract_esb_feature_vectors import reinforced_features
+
 """
 - key: 훈련 이미지 경로
 - value: tuple(keypoint들의 위치 리스트, 기술자 리스트)
@@ -63,9 +65,9 @@ test_paths = [
 def main():
     # TODO 파일 없을 때 오류처리
 
-    features: FeatureDict
-    with open(FILENAME, "rb") as f:
-        features = pickle.load(f)
+    features: FeatureDict = reinforced_features()
+    # with open(FILENAME, "rb") as f:
+    #     features = pickle.load(f)
 
     i = 1
     for p in test_paths:
