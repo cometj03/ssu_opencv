@@ -5,17 +5,7 @@ import cv2 as cv
 import numpy as np
 from cv2.typing import MatLike, Point2f
 
-"""
-- key: 훈련 이미지 경로
-- value: tuple(keypoint들의 위치 리스트, 기술자 리스트)
-"""
-# FeatureDict = Dict[str, Tuple[Sequence[Point2f], Sequence[np.ndarray]]]
-
-"""
-- key: keypoint가 중복된 횟수
-- value: (train 이미지 shape, keypoint 좌표, 기술자) 튜플의 리스트
-"""
-FeatureDict = Dict[int, list[Tuple[Tuple[int, int], Point2f, np.ndarray]]]
+FeatureList = list[Tuple[Tuple[int, int], Point2f, np.ndarray]]
 
 train_img_paths = [
     "train_img/esb1.png",
@@ -25,6 +15,14 @@ train_img_paths = [
     "train_img/esb6.png",
     "train_img/esb7.png",
     "train_img/esb8.png",
+]
+
+wrong_img_paths = [
+    "train_img/wrong/wrong1.png",
+    "train_img/wrong/wrong2.jpg",
+    "train_img/wrong/wrong3.jpg",
+    "train_img/wrong/wrong4.jpg",
+    "train_img/wrong/wrong5.png",
 ]
 
 
@@ -38,7 +36,7 @@ def waitKey() -> bool:
 
 # 특징점 강화
 # esb끼리의 공통점 추출
-def reinforced_features(visualize: bool = False) -> FeatureDict:
+def get_empire_state_features(visualize: bool = False) -> FeatureList:
     visualize = visualize and not RENEW
 
     train_kp_list: list[Sequence[cv.KeyPoint]] = []
@@ -49,8 +47,8 @@ def reinforced_features(visualize: bool = False) -> FeatureDict:
     # detector: cv.Feature2D = cv.SIFT.create()
     # detector: cv.Feature2D = cv.KAZE.create()
     detector: cv.Feature2D = cv.ORB.create()
-    # matcher: cv.DescriptorMatcher = cv.BFMatcher.create(cv.NORM_HAMMING)
-    matcher: cv.DescriptorMatcher = cv.BFMatcher.create(cv.NORM_L2)
+    matcher: cv.DescriptorMatcher = cv.BFMatcher.create(cv.NORM_HAMMING)
+    # matcher: cv.DescriptorMatcher = cv.BFMatcher.create(cv.NORM_L2)
 
     # 모든 훈련 이미지의 특징점과 기술자 추출
     for path in train_img_paths:
@@ -68,7 +66,7 @@ def reinforced_features(visualize: bool = False) -> FeatureDict:
 
     cnt = len(train_desc_list)
 
-    features: FeatureDict = dict()
+    features: FeatureList = list()
 
     for i in range(cnt):
         print('first', i)
@@ -115,17 +113,9 @@ def reinforced_features(visualize: bool = False) -> FeatureDict:
             for m in good_matches:
                 vote[m.queryIdx] += 1
 
-            # if visualize:
-            #     matching_dst = cv.drawMatches(src_list[i], train_kp_list[i],
-            #                                   src_list[j], train_kp_list[j], good_matches, None,
-            #                                   flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
-            #     cv.imshow("matching_dst", matching_dst)
-            #     if waitKey():
-            #         break
-
         ### end for j
-        good_pts: list[Point2f] = []  # keypoint의 위치만 저장. KeyPoint 객체를 pickling 할 수 없기 때문
-        good_desc: list[np.ndarray] = []
+        # good_pts: list[Point2f] = []  # keypoint의 위치만 저장. KeyPoint 객체를 pickling 할 수 없기 때문
+        # good_desc: list[np.ndarray] = []
 
         # 시각화 용
         kps: Dict[int, list[cv.KeyPoint]] = dict()
@@ -138,9 +128,11 @@ def reinforced_features(visualize: bool = False) -> FeatureDict:
             pt: Point2f = train_kp_list[i][v].pt
             desc = train_desc_list[i][v]
 
-            if vote[v] not in features:  # key가 없으면 init
-                features[vote[v]] = []
-            features[vote[v]].append((src_list[i].shape[:2], pt, desc))
+            # if vote[v] not in features:  # key가 없으면 init
+            #     features[vote[v]] = []
+            # features[vote[v]].append((src_list[i].shape[:2], pt, desc))
+
+            features.append((src_list[i].shape[:2], pt, desc))
 
             if visualize:
                 if vote[v] not in kps:
@@ -158,13 +150,64 @@ def reinforced_features(visualize: bool = False) -> FeatureDict:
     return features
 
 
+def except_wrong_features(features: FeatureList) -> FeatureList:
+    wrong_kp_list: list[Sequence[cv.KeyPoint]] = []
+    wrong_desc_list: list[np.ndarray] = []
+
+    wrong_src_list: list[MatLike] = []
+
+    detector: cv.Feature2D = cv.ORB.create()
+    matcher: cv.DescriptorMatcher = cv.BFMatcher.create(cv.NORM_HAMMING)
+
+    # 모든 훈련 이미지의 특징점과 기술자 추출
+    for path in train_img_paths:
+        src = cv.imread(path, cv.IMREAD_GRAYSCALE)
+
+        if src is None:
+            print(f"Image load failed! path={path}")
+            return
+
+        kp, desc = detector.detectAndCompute(src, None)
+
+        wrong_src_list.append(src)
+        wrong_kp_list.append(kp)
+        wrong_desc_list.append(desc)
+
+    shapes, pts, descs = zip(*features)
+    descs = np.array(descs)
+
+    exclude_mask = np.zeros((descs.shape[0],))
+
+    for i in range(len(wrong_img_paths)):
+        wrong_desc = wrong_desc_list[i]
+        matches = matcher.knnMatch(wrong_desc, descs, k=2)
+
+        good_matches: list[cv.DMatch] = []
+        for m, n in matches:
+            if m.distance < 0.75 * n.distance:
+                good_matches.append(m)
+                exclude_mask[m.trainIdx] = 1
+
+    new_shapes, new_pts, new_descs = [], [], []
+    for i in range(exclude_mask.shape[0]):
+        if exclude_mask[i] != 1:
+            new_shapes.append(shapes[i])
+            new_pts.append(pts[i])
+            new_descs.append(descs[i])
+
+    return list(zip(new_shapes, new_pts, new_descs))
+
+
 FILENAME = "esb_feature_vector.pkl"
-VISUALIZE = True  # 시각화 여부
+VISUALIZE = False  # 시각화 여부
 RENEW = False  # 파일 갱신 여부
 
 
 def init():
-    features = reinforced_features(VISUALIZE)
+    features = get_empire_state_features(VISUALIZE)
+    features = except_wrong_features(features)
+    print(type(features))
+    print(len(features))
 
     if RENEW:
         with open(FILENAME, "wb") as f:
