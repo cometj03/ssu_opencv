@@ -84,9 +84,9 @@ def get_empire_state_features(visualize: bool = False) -> FeatureList:
             desc2 = train_desc_list[j]
 
             # 브루트포스 방식
-            matches: Sequence[cv.DMatch] = matcher.match(desc1, desc2)
-            sorted_matches = sorted(matches, key=lambda x: x.distance)
-            good_matches = sorted_matches[:50]
+            # matches: Sequence[cv.DMatch] = matcher.match(desc1, desc2)
+            # sorted_matches = sorted(matches, key=lambda x: x.distance)
+            # good_matches = sorted_matches[:50]
 
             # homography 방식
             # kp1 = train_kp_list[i]
@@ -104,11 +104,11 @@ def get_empire_state_features(visualize: bool = False) -> FeatureList:
             #         good_matches.append(matches[k])
 
             # KNN 방식
-            # matches: Sequence[Sequence[cv.DMatch]] = matcher.knnMatch(desc1, desc2, k=2)
-            # good_matches: list[cv.DMatch] = []
-            # for m, n in matches:
-            #     if m.distance < 0.8 * n.distance:
-            #         good_matches.append(m)
+            matches: Sequence[Sequence[cv.DMatch]] = matcher.knnMatch(desc1, desc2, k=2)
+            good_matches: list[cv.DMatch] = []
+            for m, n in matches:
+                if m.distance < 0.8 * n.distance:
+                    good_matches.append(m)
 
             for m in good_matches:
                 vote[m.queryIdx] += 1
@@ -150,7 +150,9 @@ def get_empire_state_features(visualize: bool = False) -> FeatureList:
     return features
 
 
-def except_wrong_features(features: FeatureList) -> FeatureList:
+def except_wrong_features(features: FeatureList, visualize: bool = False) -> FeatureList:
+    visualize = visualize and not RENEW
+
     wrong_kp_list: list[Sequence[cv.KeyPoint]] = []
     wrong_desc_list: list[np.ndarray] = []
 
@@ -159,8 +161,7 @@ def except_wrong_features(features: FeatureList) -> FeatureList:
     detector: cv.Feature2D = cv.ORB.create()
     matcher: cv.DescriptorMatcher = cv.BFMatcher.create(cv.NORM_HAMMING)
 
-    # 모든 훈련 이미지의 특징점과 기술자 추출
-    for path in train_img_paths:
+    for path in wrong_img_paths:
         src = cv.imread(path, cv.IMREAD_GRAYSCALE)
 
         if src is None:
@@ -184,13 +185,21 @@ def except_wrong_features(features: FeatureList) -> FeatureList:
 
         good_matches: list[cv.DMatch] = []
         for m, n in matches:
-            if m.distance < 0.75 * n.distance:
+            if m.distance < 0.85 * n.distance:
                 good_matches.append(m)
-                exclude_mask[m.trainIdx] = 1
+                exclude_mask[m.trainIdx] += 1
+
+        if visualize:
+            kps = [wrong_kp_list[i][m.queryIdx] for m in good_matches]
+            res = cv.drawKeypoints(wrong_src_list[i], kps, None, (-1, -1, -1),
+                                   flags=cv.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+            print(len(good_matches))
+            cv.imshow('wrong', res)
+            waitKey()
 
     new_shapes, new_pts, new_descs = [], [], []
     for i in range(exclude_mask.shape[0]):
-        if exclude_mask[i] != 1:
+        if exclude_mask[i] < 1:
             new_shapes.append(shapes[i])
             new_pts.append(pts[i])
             new_descs.append(descs[i])
@@ -200,18 +209,22 @@ def except_wrong_features(features: FeatureList) -> FeatureList:
 
 FILENAME = "esb_feature_vector.pkl"
 VISUALIZE = False  # 시각화 여부
-RENEW = False  # 파일 갱신 여부
+RENEW = True  # 파일 갱신 여부
+
+
+# RENEW = False  # 파일 갱신 여부
 
 
 def init():
-    features = get_empire_state_features(VISUALIZE)
-    features = except_wrong_features(features)
-    print(type(features))
+    features = get_empire_state_features(visualize=VISUALIZE)
+    print(len(features))
+    features = except_wrong_features(features, visualize=True)
     print(len(features))
 
     if RENEW:
         with open(FILENAME, "wb") as f:
             pickle.dump(features, f)
+        print('갱신 완료')
 
 
 if __name__ == '__main__':
