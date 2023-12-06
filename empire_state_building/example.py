@@ -28,7 +28,7 @@ def keypoint_matching():
 
 
 def good_matching():
-    src1 = cv2.imread('img/esb1.jpg', cv2.IMREAD_GRAYSCALE)
+    src1 = cv2.imread('img/empire_state/esb1.jpg', cv2.IMREAD_GRAYSCALE)
     src2 = cv2.imread('extract_feature/correct/ex/esb2.jpg', cv2.IMREAD_GRAYSCALE)
 
     if src1 is None or src2 is None:
@@ -56,7 +56,7 @@ def good_matching():
 
 def find_homography():
     src1 = cv2.imread('img/esb4_part.png', cv2.IMREAD_GRAYSCALE)
-    src2 = cv2.imread('img/esb5.jpg', cv2.IMREAD_GRAYSCALE)
+    src2 = cv2.imread('img/empire_state/esb5.jpg', cv2.IMREAD_GRAYSCALE)
     src2 = cv2.resize(src2, (0, 0), fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA)
 
     if src1 is None or src2 is None:

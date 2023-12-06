@@ -30,22 +30,22 @@ def get_esb_features(filename: str = "extract_feature/esb.pkl"):
 
 def main():
     test_path = [
-        "img/esb1.jpg",
-        "img/esb2.jpg",
-        "img/esb3.jpg",
-        "img/esb4.jpg",
-        "img/esb5.jpg",
-        "img/esb6.jpg",
-        "img/esb7.jpg",
+        "img/empire_state/1.jpg",
+        "img/empire_state/2.jpg",
+        "img/empire_state/3.jpg",
+        "img/empire_state/4.jpg",
+        "img/empire_state/5.jpg",
+        "img/empire_state/6.jpg",
+        "img/empire_state/7.jpg",
     ]
     not_esb_path = [
-        "img/not-esb1.jpg",
-        "img/not-esb2.jpg",
-        "img/not-esb3.jpg",
-        "img/not-esb4.jpg",
-        "img/not-esb5.jpg",
-        "img/not-esb6.png",
-        "img/not-esb7.jpg",
+        "img/others/1.jpg",
+        "img/others/2.jpg",
+        "img/others/3.jpeg",
+        "img/others/4.jpg",
+        "img/others/5.jpg",
+        "img/others/6.jpg",
+        "img/others/7.jpg",
     ]
     test_path += not_esb_path
 
