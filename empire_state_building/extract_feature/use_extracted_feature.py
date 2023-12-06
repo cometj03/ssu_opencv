@@ -4,7 +4,7 @@ from typing import Sequence
 import cv2 as cv
 import numpy as np
 
-from extract_esb_feature_vectors import FeatureList
+from empire_state_building.extract_feature.extract_esb_feature_vectors import FeatureList
 
 
 def waitKey() -> bool:
@@ -40,16 +40,10 @@ test_paths = [
 
 
 def main():
-    # TODO 파일 없을 때 오류처리
-
     features: FeatureList
-    # features: FeatureDict = get_empire_state_features()
 
     with open(FILENAME, "rb") as f:
         features = pickle.load(f)
-
-    # p = test_paths[0]
-    # test(p, features)
 
     i = 1
     for p in test_paths:
@@ -81,13 +75,6 @@ def test(path: str, features: FeatureList):
 
     good_matches: list[cv.DMatch] = []
     good_kps: list[cv.KeyPoint] = []
-
-    # matches: Sequence[Sequence[cv.DMatch]] = matcher.knnMatch(esb_desc, dst_desc, k=2)
-    #
-    # for m, n in matches:
-    #     if m.distance < 0.9 * n.distance:
-    #         good_matches.append(m)
-    #         good_kps.append(dst_kp[m.trainIdx])
 
     matches: Sequence[cv.DMatch] = matcher.match(esb_desc, dst_desc)
     sorted_matches = sorted(matches, key=lambda x: x.distance)

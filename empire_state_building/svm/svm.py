@@ -35,7 +35,7 @@ def accuracy(predict_desc: np.ndarray, answer_path: str, detector: cv.Feature2D,
     answer_src = cv.imread(answer_path, cv.IMREAD_GRAYSCALE)
     kp_a, desc_a = detector.detectAndCompute(answer_src, None)
 
-    test_src = cv.imread("svm/5.png", cv.IMREAD_GRAYSCALE)
+    test_src = cv.imread("5.png", cv.IMREAD_GRAYSCALE)
     kp_test, desc_test = detector.detectAndCompute(test_src, None)
 
     matches = matcher.knnMatch(desc_a, predict_desc, k=2)
@@ -64,7 +64,7 @@ def main():
         # ("svm/1_part.png", "svm/1.png"),
         # ("svm/2_part.png", "svm/2.png"),
         # ("svm/3_part.png", "svm/3.png"),
-        ("svm/4_part.png", "svm/4.png"),
+        ("4_part.png", "4.png"),
     ]
 
     detector: cv.Feature2D = cv.SIFT.create()
@@ -100,7 +100,7 @@ def main():
         # print(c, gamma)
 
         # src_test = src_train.copy()
-        src_test = cv.imread("svm/5.png", cv.IMREAD_GRAYSCALE)
+        src_test = cv.imread("5.png", cv.IMREAD_GRAYSCALE)
         kp_test, desc_test = detector.detectAndCompute(src_test, None)
 
         pred_esb_kp, pred_not_esb_kp = [], []
@@ -114,7 +114,7 @@ def main():
                 pred_esb_kp.append(kp_test[i])
                 pred_desc.append(desc_test[i])
 
-        acc = accuracy(np.array(pred_desc), "svm/5_part.png", detector, matcher)
+        acc = accuracy(np.array(pred_desc), "5_part.png", detector, matcher)
         print(pred_desc)
         print(acc)
 

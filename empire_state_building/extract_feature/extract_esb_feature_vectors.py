@@ -5,24 +5,24 @@ import cv2 as cv
 import numpy as np
 from cv2.typing import MatLike, Point2f
 
-FeatureList = list[Tuple[Tuple[int, int], Point2f, np.ndarray]]
+FeatureList = Sequence[Tuple[Tuple[int, int], Point2f, np.ndarray]]
 
 train_img_paths = [
-    "train_img/esb1.png",
-    "train_img/esb2.png",
-    "train_img/esb4.png",
-    "train_img/esb5.png",
-    "train_img/esb6.png",
-    "train_img/esb7.png",
-    "train_img/esb8.png",
+    "correct/esb1.png",
+    "correct/esb2.png",
+    "correct/esb4.png",
+    "correct/esb5.png",
+    "correct/esb6.png",
+    "correct/esb7.png",
+    "correct/esb8.png",
 ]
 
 wrong_img_paths = [
-    "train_img/wrong/wrong1.png",
-    "train_img/wrong/wrong2.jpg",
-    "train_img/wrong/wrong3.jpg",
-    "train_img/wrong/wrong4.jpg",
-    "train_img/wrong/wrong5.png",
+    "wrong/wrong1.png",
+    "wrong/wrong2.jpg",
+    "wrong/wrong3.jpg",
+    "wrong/wrong4.jpg",
+    "wrong/wrong5.png",
 ]
 
 
@@ -207,7 +207,7 @@ def except_wrong_features(features: FeatureList, visualize: bool = False) -> Fea
     return list(zip(new_shapes, new_pts, new_descs))
 
 
-FILENAME = "esb_feature_vector.pkl"
+FILENAME = "esb.pkl"
 VISUALIZE = False  # 시각화 여부
 RENEW = True  # 파일 갱신 여부
 
