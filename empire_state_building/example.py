@@ -63,12 +63,12 @@ def find_homography():
         print('Image load failed!')
         return
 
-    orb = cv2.ORB_create()
+    orb = cv2.SIFT.create()
 
     keypoints1, desc1 = orb.detectAndCompute(src1, None)
     keypoints2, desc2 = orb.detectAndCompute(src2, None)
 
-    matcher = cv2.BFMatcher_create(cv2.NORM_HAMMING)
+    matcher = cv2.BFMatcher_create(cv2.NORM_L2)
     matches = matcher.match(desc1, desc2)
 
     matches = sorted(matches, key=lambda x: x.distance)
