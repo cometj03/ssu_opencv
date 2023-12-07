@@ -1,4 +1,5 @@
 import os
+import sys
 
 import cv2 as cv
 import numpy as np
@@ -7,7 +8,7 @@ template_dir = "template/"
 template_paths = [template_dir + f for f in os.listdir(template_dir)]
 
 
-def detect(template, src2, visualize):
+def detect(template, src2):
     detector = cv.SIFT.create()
     matcher = cv.BFMatcher.create()
 
@@ -39,25 +40,25 @@ def detect(template, src2, visualize):
     if cv.contourArea(corners2) < 2000:
         return None
 
-    if len(cv.convexHull(corners2)) < 4:
-        return None
-
     res = cv.cvtColor(src2, cv.COLOR_GRAY2BGR)
     cv.polylines(res, [np.int32(corners2)], True, (0, 0, 255), 5, cv.LINE_AA)
     res = cv.resize(res, (0, 0), fx=0.5, fy=0.5, interpolation=cv.INTER_AREA)
 
+    if len(cv.convexHull(corners2)) < 4:
+        return None
     return res
 
 
-def main(test_path):
-    # test_path = "img/test/9.jpg" if len(sys.argv) < 2 else sys.argv[1]
+def main():
+    if len(sys.argv) < 2:
+        print("파일 경로를 입력해주세요!")
+        return
+    test_path = sys.argv[1]
     src2 = cv.imread(test_path, cv.IMREAD_GRAYSCALE)
 
     if src2 is None:
         print(f"Image load failed! path={test_path}")
         return
-
-    true_cnt = 0
 
     for path in template_paths:
         template = cv.imread(path, cv.IMREAD_GRAYSCALE)
@@ -68,19 +69,15 @@ def main(test_path):
 
         template2 = cv.bilateralFilter(template, -1, 10, 5)
         src = cv.bilateralFilter(src2, -1, 10, 5)
-        b = detect(template2, src, True)
-        if b:
-            true_cnt += 1
-
-    if true_cnt >= len(template_paths) // 3:
-        print(True)
+        res = detect(template2, src)
+        if res is not None:
+            cv.imshow("res", res)
+            cv.waitKey()
+            break
     else:
-        print(False)
+        print("not empire state building")
 
 
 if __name__ == '__main__':
-    test_dir = "img/test/"
-    test_paths = [test_dir + f for f in os.listdir(test_dir)]
-    for p in test_paths:
-        main(p)
+    main()
     cv.destroyAllWindows()

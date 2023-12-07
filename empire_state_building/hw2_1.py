@@ -44,7 +44,10 @@ def detect(template, src2):
 
 
 def main():
-    test_path = "img/test/9.jpg" if len(sys.argv) < 2 else sys.argv[1]
+    if len(sys.argv) < 2:
+        print("파일 경로를 입력해주세요!")
+        return
+    test_path = sys.argv[1]
     src2 = cv.imread(test_path, cv.IMREAD_GRAYSCALE)
 
     if src2 is None:
