@@ -8,11 +8,7 @@ template_dir = "template/"
 template_paths = [template_dir + f for f in os.listdir(template_dir)]
 
 
-# test_dir = "img/test/"
-# test_paths = [test_dir + f for f in os.listdir(test_dir)]
-
-
-def predict(template, src2, visualize):
+def detect(template, src2):
     detector = cv.SIFT.create()
     matcher = cv.BFMatcher.create()
 
@@ -40,24 +36,14 @@ def predict(template, src2, visualize):
     (h, w) = template.shape[:2]
     corners1 = np.array([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2).astype(np.float32)
     corners2 = cv.perspectiveTransform(corners1, H)
-    # corners2 = corners2 + np.float32([w, 0])
 
-    if visualize:
-        res = template.copy()
-        # res = cv.drawMatches(res, kp1, src2, kp2, good_matches, None, (-1, -1, -1),
-        #                      flags=cv.DRAW_MATCHES_FLAGS_NOT_DRAW_SINGLE_POINTS)
-        cv.polylines(res, [np.int32(corners2)], True, (0, 0, 255), 5, cv.LINE_AA)
-        res = cv.resize(res, (0, 0), fx=0.5, fy=0.5, interpolation=cv.INTER_AREA)
-        cv.imshow("res", res)
-        cv.waitKey()
-
-    if cv.contourArea(corners2) < 1000:
+    if cv.contourArea(corners2) < 2000:
         return False
+
     return True
 
 
 def main():
-    # test_path = "img/others/1.jpg" if len(sys.argv) < 2 else sys.argv[1]
     test_path = "img/test/9.jpg" if len(sys.argv) < 2 else sys.argv[1]
     src2 = cv.imread(test_path, cv.IMREAD_GRAYSCALE)
 
@@ -69,20 +55,17 @@ def main():
 
     for path in template_paths:
         template = cv.imread(path, cv.IMREAD_GRAYSCALE)
-        # src2 = cv.imread("img/others/3.jpg", cv.IMREAD_GRAYSCALE)
         if template is None:
             print(f"Image load failed! path={path}")
             return
 
-        # template2 = cv.GaussianBlur(template, (0, 0), sigmaX=1.0)
         template2 = cv.bilateralFilter(template, -1, 10, 5)
-        # src = cv.GaussianBlur(src2, (0, 0), sigmaX=1.0)
         src = cv.bilateralFilter(src2, -1, 10, 5)
-        b = predict(template2, src, False)
+        b = detect(template2, src)
         if b:
             true_cnt += 1
 
-    if true_cnt >= len(template_paths) // 2:
+    if true_cnt >= 3:
         print(True)
     else:
         print(False)
@@ -90,4 +73,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-    cv.destroyAllWindows()
+    # cv.destroyAllWindows()
