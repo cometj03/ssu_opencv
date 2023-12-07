@@ -1,78 +1,91 @@
-import pickle
-from typing import Sequence, Tuple
+import os
+import sys
 
 import cv2 as cv
 import numpy as np
-from cv2.typing import Point2f
+
+template_dir = "template/"
+template_paths = [template_dir + f for f in os.listdir(template_dir)]
 
 
-def _resize(src):
-    width, height = 1500, 1000
-    width_ratio = width / src.shape[1]
-    height_ratio = height / src.shape[0]
-
-    if width_ratio < 1 or height_ratio < 1:
-        ratio = min(width_ratio, height_ratio)
-        src = cv.resize(src, (0, 0), fx=ratio, fy=ratio, interpolation=cv.INTER_AREA)
-    return src
+# test_dir = "img/test/"
+# test_paths = [test_dir + f for f in os.listdir(test_dir)]
 
 
-def get_esb_features(filename: str = "extract_feature/esb.pkl"):
-    FeatureList = Sequence[Tuple[Tuple[int, int], Point2f, np.ndarray]]
-    features: FeatureList
+def predict(template, src2, visualize):
+    detector = cv.SIFT.create()
+    matcher = cv.BFMatcher.create()
 
-    with open(filename, "rb") as f:
-        features = pickle.load(f)
+    kp1, desc1 = detector.detectAndCompute(template, None)
+    kp2, desc2 = detector.detectAndCompute(src2, None)
 
-    _, _, desc = zip(*features)
-    return np.array(desc)
+    matches = matcher.knnMatch(desc1, desc2, k=2)
+
+    good_matches = []
+    for m, n in matches:
+        if m.distance < 0.7 * n.distance:
+            good_matches.append(m)
+
+    if len(good_matches) < 10:
+        return False
+
+    pts1 = np.array([kp1[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2).astype(np.float32)
+    pts2 = np.array([kp2[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2).astype(np.float32)
+
+    H, _ = cv.findHomography(pts1, pts2, cv.RANSAC, 5.0)
+
+    if H is None:
+        return False
+
+    (h, w) = template.shape[:2]
+    corners1 = np.array([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2).astype(np.float32)
+    corners2 = cv.perspectiveTransform(corners1, H)
+    # corners2 = corners2 + np.float32([w, 0])
+
+    if visualize:
+        res = template.copy()
+        # res = cv.drawMatches(res, kp1, src2, kp2, good_matches, None, (-1, -1, -1),
+        #                      flags=cv.DRAW_MATCHES_FLAGS_NOT_DRAW_SINGLE_POINTS)
+        cv.polylines(res, [np.int32(corners2)], True, (0, 0, 255), 5, cv.LINE_AA)
+        res = cv.resize(res, (0, 0), fx=0.5, fy=0.5, interpolation=cv.INTER_AREA)
+        cv.imshow("res", res)
+        cv.waitKey()
+
+    if cv.contourArea(corners2) < 1000:
+        return False
+    return True
 
 
 def main():
-    test_path = [
-        "img/empire_state/1.jpg",
-        "img/empire_state/2.jpg",
-        "img/empire_state/3.jpg",
-        "img/empire_state/4.jpg",
-        "img/empire_state/5.jpg",
-        "img/empire_state/6.jpg",
-        "img/empire_state/7.jpg",
-    ]
-    not_esb_path = [
-        "img/others/1.jpg",
-        "img/others/2.jpg",
-        "img/others/3.jpeg",
-        "img/others/4.jpg",
-        "img/others/5.jpg",
-        "img/others/6.jpg",
-        "img/others/7.jpg",
-    ]
-    test_path += not_esb_path
+    # test_path = "img/others/1.jpg" if len(sys.argv) < 2 else sys.argv[1]
+    test_path = "img/test/9.jpg" if len(sys.argv) < 2 else sys.argv[1]
+    src2 = cv.imread(test_path, cv.IMREAD_GRAYSCALE)
 
-    detector: cv.Feature2D = cv.SIFT.create()
-    matcher: cv.DescriptorMatcher = cv.BFMatcher.create(cv.NORM_L2)
+    if src2 is None:
+        print(f"Image load failed! path={test_path}")
+        return
 
-    for path in test_path:
-        src_test = cv.imread(path, cv.IMREAD_GRAYSCALE)
+    true_cnt = 0
 
-        kp, desc = detector.detectAndCompute(src_test, None)
-        esb_desc = get_esb_features()
+    for path in template_paths:
+        template = cv.imread(path, cv.IMREAD_GRAYSCALE)
+        # src2 = cv.imread("img/others/3.jpg", cv.IMREAD_GRAYSCALE)
+        if template is None:
+            print(f"Image load failed! path={path}")
+            return
 
-        # matches = matcher.match(esb_desc, desc)
-        # good_matches = sorted(matches, key=lambda x: x.distance)[:100]
+        # template2 = cv.GaussianBlur(template, (0, 0), sigmaX=1.0)
+        template2 = cv.bilateralFilter(template, -1, 10, 5)
+        # src = cv.GaussianBlur(src2, (0, 0), sigmaX=1.0)
+        src = cv.bilateralFilter(src2, -1, 10, 5)
+        b = predict(template2, src, False)
+        if b:
+            true_cnt += 1
 
-        matches = matcher.knnMatch(esb_desc, desc, k=2)
-        good_matches = []
-        for m, n in matches:
-            if m.distance < 0.8 * n.distance:
-                good_matches.append(m)
-
-        match_kp = [kp[m.trainIdx] for m in good_matches]
-        res = cv.drawKeypoints(src_test, match_kp, None, (0, 0, 255),
-                               flags=cv.DRAW_MATCHES_FLAGS_NOT_DRAW_SINGLE_POINTS)
-        res = _resize(res)
-        cv.imshow('res', res)
-        cv.waitKey()
+    if true_cnt >= len(template_paths) // 2:
+        print(True)
+    else:
+        print(False)
 
 
 if __name__ == '__main__':
